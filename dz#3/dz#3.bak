@@ -1,0 +1,266 @@
+(load "test.scm")
+(load "trace.scm")
+
+(define ie (interaction-environment))
+
+
+(define (derivative xs)
+
+  
+  (define (simpl-mult xs)
+    (if (<= (length (cdr xs)) 2)
+        `(,(car xs) ,(cadr xs) ,(caddr xs))
+        `(,(car xs) ,(cadr xs) ,(simpl-mult (cons (car xs) (cddr xs))))))
+
+  (define (delem dxs)
+    
+    (define expr (cond
+                   ((pair? dxs) (car dxs))
+                   ((and (not (pair? dxs)) (not (null? dxs))) dxs)
+                   (else 'Error)))
+                      
+    (cond ((number? expr) 0)
+          ((equal? expr '*) (if (<= (length (cdr dxs)) 2)
+                                `(+ (* ,(delem (cadr dxs)) ,(caddr dxs)) (* ,(cadr dxs) ,(delem (caddr dxs))))
+                                (delem (simpl-mult dxs))))
+                              
+                                                               
+          ((equal? expr '/) `(/ (- (* ,(delem (cadr dxs)) ,(caddr dxs)) (* ,(cadr dxs) ,(delem (caddr dxs)))) (* ,(caddr dxs) ,(caddr dxs))))
+          ((equal? expr 'x) 1)
+          ((equal? expr '-x) -1)
+          ((equal? expr 'expt) (if (number? (cadr dxs))
+                                   `(* (expt ,(cadr dxs) ,(caddr dxs)) ,(log (cadr dxs)))
+                                   `(* ,(delem (cadr dxs)) (* ,(caddr dxs) ,`(expt ,(cadr dxs) ,(- (caddr dxs) 1))))))
+          ((equal? expr 'sin) `(* ,(delem (cadr dxs)) (cos ,(cadr dxs))))
+          ((equal? expr 'cos) `(* -1 (* ,(delem (cadr dxs)) (sin ,(cadr dxs)))))
+          ((equal? expr 'log) `(* ,(delem (cadr dxs)) (/ 1 ,(cadr dxs))))
+          ((equal? expr 'exp) `(* ,(delem (cadr dxs)) (exp ,(cadr dxs))))
+          ((equal? expr '+) (if (<= (length (cdr dxs)) 2)
+                                `(+ ,(delem (cadr dxs)) ,(delem (caddr dxs)))
+                                (delem (simpl-mult dxs))))
+          ((equal? expr '-) (if (<= (length (cdr dxs)) 2)
+                                (if (= (length (cdr dxs)) 1)
+                                    `(- ,(delem (cadr dxs)))
+                                    `(- ,(delem (cadr dxs)) ,(delem (caddr dxs))))
+                                (delem (simpl-mult dxs))))
+          
+          
+          ))
+  
+  
+  (delem xs))
+
+
+
+
+#|
+(define derivative-tests
+  (list (test
+         (begin (eval (derivative '(5)) (interaction-environment)))
+         '0) ;No1
+        (test
+         (begin (define x 5) (eval (derivative '(x)) (interaction-environment)))
+         '1) ;No2
+        (test
+         (begin (define x 5) (eval (derivative '(-x)) (interaction-environment)))
+         '-1) ;No3
+        (test
+         (begin (define x 5) (eval (derivative '(* 1 x)) (interaction-environment)))
+         '1) ;No4
+        (test
+         (begin (define x 5) (eval (derivative '(* -1 x)) (interaction-environment)))
+         '-1) ;No5
+        (test
+         (begin (define x 5) (eval (derivative '(* -4 x)) (interaction-environment)))
+         '-4) ;No6
+        (test
+         (begin (define x 5) (eval (derivative '(* 10 x)) (interaction-environment)))
+         '10) ;No7
+        (test
+         (begin (define x 5) (eval (derivative '(- (* 2 x) 3)) (interaction-environment)))
+         '2) ;No8
+        (test
+         (begin (define x 5) (eval (derivative '(expt x 10)) (interaction-environment)))
+         '19531250) ;No9
+        (test
+         (begin (define x 5) (eval (derivative '(* 2 (expt x 5))) (interaction-environment)))
+         '6250) ;No10
+        (test
+         (begin (define x 5) (eval (derivative '(expt x -2)) (interaction-environment)))
+         '-2/125) ;No11
+        (test
+         (begin (define x 5) (eval (derivative '(expt 5 x)) (interaction-environment)))
+         '5029.493476356563) ;No12
+        (test
+         (begin (define x 5) (eval (derivative '(cos x)) (interaction-environment)))
+         '0.9589242746631385) ;No13
+        (test
+         (begin (define x 5) (eval (derivative '(sin x)) (interaction-environment)))
+         '0.2836621854632263) ;No14
+        (test
+         (begin (define x 5) (eval (derivative '(exp x)) (interaction-environment)))
+         '148.4131591025766) ;No15
+        (test
+         (begin (define x 5) (eval (derivative '(* 2 (exp x))) (interaction-environment)))
+         '296.8263182051532) ;No16
+        (test
+         (begin (define x 5) (eval (derivative '(* 2 (exp (* 2 x)))) (interaction-environment)))
+         '88105.86317922687) ;No17
+        (test
+         (begin (define x 5) (eval (derivative '(log x)) (interaction-environment)))
+         '1/5) ;No18
+        (test
+         (begin (define x 5) (eval (derivative '(* 3 (log x))) (interaction-environment)))
+         '3/5) ;No19
+        (test
+         (begin (define x 5) (eval (derivative '(+ (expt x 3) (expt x 2))) (interaction-environment)))
+         '85) ;No20
+        (test
+         (begin (define x 5) (eval (derivative '(- (* 2 (expt x 3)) (* 2 (expt x 2)))) (interaction-environment)))
+         '130) ;No21
+        (test
+         (begin (define x 5) (eval (derivative '(/ 3 x)) (interaction-environment)))
+         '-3/25) ;No22
+        (test
+         (begin (define x 5) (eval (derivative '(* 3/2 (expt x -2))) (interaction-environment)))
+         '-3/125) ;No23
+        (test
+         (begin (define x 5) (eval (derivative '(* 2 (sin x) (cos x))) (interaction-environment)))
+         -1.6781430581529049) ;No24
+        (test
+         (begin (define x 5) (eval (derivative '(* 2 (exp x) (sin x) (cos x))) (interaction-environment)))
+         -329.798404372116) ;No25
+        (test
+         (begin (define x 5) (eval (derivative '(sin (* 2 x))) (interaction-environment)))
+         '-1.6781430581529049) ;No26
+        (test
+         (begin (define x 5) (eval (derivative '(cos (* 2 (expt x 2)))) (interaction-environment)))
+         '5.247497074078575) ;No27
+        (test
+         (begin (define x 5) (eval (derivative '(sin (log (expt x 2)))) (interaction-environment)))
+         '-0.39880605671921887) ;No28
+        (test
+         (begin (define x 5) (eval (derivative '(+ (sin (* 2 x)) (cos (* 2 (expt x 2))))) (interaction-environment)))
+         '3.5693540159256703) ;No29
+        (test
+         (begin (define x 5) (eval (derivative '(* (sin (* 2 x)) (cos (* 2 (expt x 2))))) (interaction-environment)))
+         '-4.474100229696363) ;No30
+        (test
+         (begin (define x 5) (eval (derivative '(* (exp x) (sin x))) (interaction-environment)))
+         '-100.21777988036483) ; рекомендация ;
+        (test
+         (begin (define x 5) (eval (derivative '(* (sin x) (exp x))) (interaction-environment)))
+         '-100.21777988036483) ; рекомендация ;
+        (test
+         (begin (define x 5) (eval (derivative '(/ 3 x)) (interaction-environment)))
+         '-3/25) ; рекомендация ;
+        (test
+         (begin (define x 5) (eval (derivative '(* 3 (/ 1 x))) (interaction-environment)))
+         '-3/25))) ; рекомендация ;
+
+(run-tests derivative-tests)|#
+
+
+;;================================== ACHIEVMENTS ==================================;;
+
+(define call/cc call-with-current-continuation)
+(define *env* #f)
+
+
+(define k (derivative '(* (sin (* 2 x)) (cos (* 2 (expt x 2))))))
+(define s (derivative '(* 10 x)))
+(define l (derivative '(* 2 (exp (* 2 x)))))
+(define m '(* (+ (* 0 x) (* 2 1)) 3))
+     
+
+(define (simplify expr)
+  (cond
+    ((null? expr) '())
+    ((not(pair? expr)) expr)
+    ((pair? (car expr)) (cons (simplify (car expr)) (cdr expr)))
+    ((equal? (car expr) '+)
+     (cond ((equal? 0 (simplify (cadr expr))) (simplify (caddr expr)))
+           ((equal? 0 (simplify (caddr expr))) (simplify (cadr expr)))
+           (else (cons '+ (append (list (simplify (cadr expr))) (list (simplify (caddr expr)))) ))))
+    ((equal? (car expr) '*)
+     (cond ((equal? 0 (simplify (cadr expr))) 0)
+           ((equal? 0 (simplify (caddr expr))) 0)
+           ((equal? 1 (simplify (cadr expr))) (simplify (caddr expr)))
+           ((equal? 1 (simplify (caddr expr))) (simplify (cadr expr)))
+           (else (cons '* (append (list (simplify (cadr expr))) (list (simplify (caddr expr))))))))
+    (else (cons (car expr) (simplify (cdr expr))))))
+
+
+(define-syntax flatten
+  (syntax-rules()
+    ((_ (expr ...))
+     (begin
+       (eval
+        (let loop ((l-in '(expr ...)) (l-out '()))
+          (if (not(null? l-in))
+              (if (list? l-in)
+                  (loop (car l-in) (loop (cdr l-in) l-out))
+                  (cons l-in l-out))
+              l-out)) ie)))))
+
+
+(define (dark xs)
+  (let loop ((l-in xs))
+    (cond
+      ((null? l-in) '())
+      ((equal? (car l-in) 'x) (cons 2 (loop (cdr l-in))))
+      ((pair? (car l-in)) (cons (loop (car l-in)) (loop (cdr l-in))))
+      (else (cons (car l-in) (loop (cdr l-in)))))))
+
+
+
+(define-syntax get-value
+  (syntax-rules ()
+    ((_ (x . xs))
+     'xs)))
+     
+
+(define-syntax mderivative
+  (syntax-rules ()
+    ((_ (expr ...))
+     (lambda (x)
+       (eval
+        (let loop ((l-in '(expr ...)))
+          (trace-ex l-in)
+          (cond
+            ((null? l-in) '())
+            ((equal? (car l-in) 'x) (cons x (loop (cdr l-in))))
+            ((pair? (car l-in)) (cons (loop (car l-in)) (loop (cdr l-in))))
+            (else (cons (car l-in) (loop (cdr l-in)))))) ie) 
+       ))))
+
+
+
+
+(define-syntax mderivative
+  (syntax-rules ()
+    ((_ (expr ...))
+     (begin
+       (delay
+       (eval `(let ((x x))
+                ,(derivative '(expr ...)))
+             ie))))))
+
+
+
+(define-syntax extract
+  (syntax-rules ()
+    ((extract (first . others))
+     (let ((extract-first (extract first))
+           (extract-others (extract others)))
+       (cond ((and (symbol? 'first) (not (procedure? first))) first)
+             ((not (equal? 'none extract-first)) extract-first)
+             ((not (equal? 'none extract-others)) extract-others)
+             (else 0))))
+    ((extract x)
+     'none)))
+
+(define (der-cube x)
+  (mderivative (expt x 3)))
+     
+

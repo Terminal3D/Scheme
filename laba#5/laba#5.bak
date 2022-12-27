@@ -1,0 +1,47 @@
+(load "test.scm")
+(load "trace.scm")
+(load "cycles.scm")
+
+
+(define ie (interaction-environment))
+(define call/cc call-with-current-continuation)
+(define halt (call/cc (lambda (cc) (set! *env* cc))))
+(define math-signums `(+ - / * mod neg))
+(define *env* #t)
+
+(define (in-list? x xs)
+  (and (not(null? xs))
+       (or (equal? (car xs) x)
+           (in-list? x (cdr xs)))))
+
+(define (word-index word program index)
+  (if (< index (vector-length program))
+      (if (equal? (vector-ref program index) word)
+          index
+          (word-index word program (+ index 1)))
+      #f))
+
+
+
+
+(define (math-interpret args)
+  (define sign (if (equal? (cadr args) 'neg)
+                    (cadr args)
+                    (caddr args)))
+  (if (in-list? sign math-signums)
+      (cond ((equal? sign 'neg) (- (car args)))
+            ((equal? sign 'mod) (remainder (car args) (cadr args)))
+            (else (eval `(,sign ,(car args) ,(cadr args)) ie)))
+      (*env* (display 'Error))))
+
+(define (executor 
+
+
+(define (interpret program input-stack)
+  (let interpreter ((index 0) (stack input-stack) (return-stack '()) (dictionary '()))
+    (if (= (vector-length program) index)
+        stack
+        (let ((word (vector-ref program index)))
+          ((number? word) (interpreter (+ index 1) (cons word stack) return-stack definitions))
+          ((in-list? word math-signums) (interpreter (+ index 1) (math-interpret word stack) return-stack definitions))
+   

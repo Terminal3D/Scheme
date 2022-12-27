@@ -1,0 +1,211 @@
+(define ie (interaction-environment))
+(define math-signums `(+ - *))
+(define logic-signums `(= < >))
+
+(define feature-if-else #t)
+(define feature-nested-if #t)
+(define feature-while-loop #t)
+(define feature-repeat-loop #t)
+(define feature-for-loop #t)
+(define feature-break-continue #t)
+(define feature-switch-case #t)
+(define feature-global #t)
+(define feature-tail-call #t)
+
+
+(define (in-list? x xs)
+  (and (not(null? xs))
+       (or (equal? (car xs) x)
+           (in-list? x (cdr xs)))))
+
+(define (word-index word program index)
+  (if (< index (vector-length program))
+      (if (equal? (vector-ref program index) word)
+          index
+          (word-index word program (+ index 1)))
+      #f))
+
+
+(define (executor action stack)
+  (eval (list action (cadr stack) (car stack)) ie))
+
+
+
+
+(define (w-depth program index w1 w2)
+  (let loop ((w-count 1) (ind index))
+    (cond
+      ((zero? w-count) ind)
+      ((> ind (- (vector-length program) 1)) #f)
+      ((equal? (vector-ref program ind) w2) (loop (- w-count 1) (+ ind 1)))
+      ((equal? (vector-ref program ind) w1) (loop (+ w-count 1) (+ ind 1)))
+      (else (loop w-count (+ ind 1))))))
+
+(define (case-finder program index const)
+  (if (equal? (vector-ref program index) 'endswitch)
+      index
+      (if (equal? (vector-ref program index) 'case)
+          (if (equal? (vector-ref program (+ index 1)) const)
+              (+ index 1)
+              (case-finder program (+ index 1) const))
+          (case-finder program (+ index 1) const))))
+
+(define (else-finder program index)
+  (let loop ((if-count 1) (ind index))
+    (cond
+      ((zero? if-count) (- ind 1))
+      ((and (equal? (vector-ref program ind) 'else) (equal? if-count 1)) ind)
+      ((> ind (- (vector-length program) 1)) #f)
+      ((equal? (vector-ref program ind) 'endif) (loop (- if-count 1) (+ ind 1)))
+      ((equal? (vector-ref program ind) 'if) (loop (+ if-count 1) (+ ind 1)))
+      (else (loop if-count (+ ind 1))))))
+
+(define (interpret program input-stack)
+  (let interpreter ((index 0) (stack input-stack) (return-stack '()) (dictionary '()))
+    (if (= (vector-length program) index)
+        stack
+        (let ((word (vector-ref program index)))
+          (cond
+            ((number? word) (interpreter (+ index 1) (cons word stack) return-stack dictionary))
+            ((equal? '/ word) (interpreter (+ index 1)
+                                             (cons (quotient (cadr stack) (car stack)) (cddr stack))
+                                             return-stack dictionary))
+            ((in-list? word math-signums) (interpreter (+ index 1)
+                                                       (cons (executor word stack) (cddr stack))
+                                                       return-stack dictionary))
+            ((equal? word 'neg) (interpreter (+ index 1)
+                                             (cons (- (car stack)) (cdr stack)) return-stack dictionary))
+            ((equal? word 'mod) (interpreter (+ index 1)
+                                             (cons (remainder (cadr stack) (car stack)) (cddr stack))
+                                             return-stack dictionary))
+            ((in-list? word logic-signums) (interpreter (+ index 1)
+                                                        (cons (if (executor word stack) -1 0) (cddr stack))
+                                                        return-stack dictionary))
+            ((equal? word 'not) (interpreter (+ index 1)
+                                             (cons (if (equal? (car stack) 0) -1 0) (cdr stack))
+                                             return-stack dictionary))
+            ((equal? word 'and) (interpreter (+ index 1)
+                                             (cons (if (and (not(equal? (car stack) 0))
+                                                            (not(equal? (cadr stack) 0))) -1 0) (cddr stack))
+                                             return-stack dictionary))
+            ((equal? word 'or) (interpreter (+ index 1)
+                                            (cons (if (or (not (equal? (car stack) 0))
+                                                          (not(equal? (cadr stack) 0))) -1 0) (cddr stack))
+                                            return-stack dictionary))
+            ((equal? word 'drop) (interpreter (+ index 1) (cdr stack) return-stack dictionary))
+            ((equal? word 'swap) (interpreter (+ index 1)
+                                              (append (list (cadr stack) (car stack)) (cddr stack))
+                                              return-stack dictionary))
+            ((equal? word 'dup) (interpreter (+ index 1)
+                                             (cons (car stack) stack) return-stack dictionary))
+            ((equal? word 'over) (interpreter (+ index 1)
+                                              (cons (cadr stack) stack) return-stack dictionary))
+            ((equal? word 'rot) (interpreter (+ index 1)
+                                             (append (list (caddr stack)
+                                                           (cadr stack) (car stack)) (cdddr stack))
+                                             return-stack dictionary))
+            ((equal? word 'depth) (interpreter (+ index 1) (cons (length stack) stack)
+                                               return-stack dictionary))
+            ((equal? word 'define) (interpreter (+ (word-index 'end program index) 1)
+                                                stack return-stack
+                                                (cons (list (vector-ref program (+ index 1))
+                                                            (+ index 2)) dictionary)))
+            ((in-list? word '(exit end)) (interpreter (car return-stack)
+                                                      stack (cdr return-stack) dictionary))
+            ((equal? word 'if) (interpreter (if (zero? (car stack))
+                                                (+ (else-finder program (+ index 1)) 1)
+                                                (if (w-depth program (+ index 1) 'if 'endif)
+                                                    (+ index 1)
+                                                    #f)) (cdr stack) return-stack dictionary))
+            ((equal? word 'else) (interpreter (+ (word-index 'endif program index) 1)
+                                              stack return-stack dictionary))
+            ((equal? word 'endif) (interpreter (+ index 1)
+                                               stack return-stack dictionary))
+            ((equal? word 'while) (if (zero? (car stack))
+                                      (interpreter (w-depth program (+ index 1) 'while 'wend)
+                                                   (cdr stack) return-stack dictionary)
+                                      (interpreter (+ index 1) (cdr stack)
+                                                   (cons index return-stack) dictionary)))
+            ((equal? word 'wend) (interpreter (car return-stack) stack
+                                              (cdr return-stack) dictionary))
+            ((equal? word 'repeat) (interpreter (+ index 1) stack
+                                                (cons index return-stack) dictionary))
+            ((equal? word 'until) (if (zero? (car stack))
+                                      (interpreter (car return-stack) (cdr stack)
+                                                   (cdr return-stack) dictionary)
+                                      (interpreter (+ index 1) (cdr stack)
+                                                   (cdr return-stack) dictionary)
+                                      ))
+            ((equal? word 'break) (let ((indx (car return-stack)))
+                                    (if (pair? indx)
+                                        (interpreter (+ (word-index 'next program index) 1)
+                                                     stack (cdr return-stack) dictionary)
+                                        (cond
+                                          ((equal? (vector-ref program indx) 'repeat)
+                                           (interpreter (w-depth program (+ indx 1) 'repeat 'until)
+                                                        stack (cdr return-stack) dictionary))
+                                          ((equal? (vector-ref program indx) 'while)
+                                           (interpreter (w-depth program (+ indx 1) 'while 'wend)
+                                                        stack (cdr return-stack) dictionary))))))
+            ((equal? word 'continue) (let ((indx (car return-stack)))
+                                       (if (pair? indx)
+                                           (interpreter (word-index 'next program index)
+                                                        stack return-stack dictionary)
+                                           (cond
+                                             ((equal? (vector-ref program indx) 'repeat)
+                                              (interpreter (- (w-depth program (+ indx 1) 'repeat 'until) 1)
+                                                           stack return-stack dictionary))
+                                             ((equal? (vector-ref program indx) 'while)
+                                              (interpreter (- (w-depth program (+ indx 1) 'while 'wend) 1)
+                                                           stack return-stack dictionary))))))
+            ((equal? word 'for) (interpreter (+ index 1) (cddr stack)
+                                             (cons (list (+ index 1) (cadr stack) (car stack))
+                                                   return-stack) dictionary))
+
+            ((equal? word 'next) (let ((for-data (car return-stack)))
+                                   (if (>= (cadr for-data) (caddr for-data))
+                                       (interpreter (+ index 1) stack (cdr return-stack) dictionary)
+                                       (interpreter (car for-data) stack
+                                                    (cons (list (car for-data) (+ 1 (cadr for-data))
+                                                                (caddr for-data))
+                                                          (cdr return-stack)) dictionary))))
+            ((equal? word 'i) (interpreter (+ index 1)
+                                           (cons (cadr (car return-stack)) stack) return-stack dictionary))
+
+            ((equal? word 'switch) (let ((case-loc (case-finder program index (car stack))))
+                                     (interpreter (+ case-loc 1) (cdr stack) return-stack dictionary)))
+            ((equal? word 'exitcase) (interpreter (+ (word-index 'endswitch program index) 1)
+                                                  stack return-stack dictionary))
+            ((equal? word 'endswitch) (interpreter (+ index 1) stack return-stack dictionary))
+
+            ((equal? word 'case) (interpreter (+ index 2) stack return-stack dictionary))
+
+            ((equal? word 'defvar) (interpreter (+ index 3) stack return-stack
+                                                (cons (list (vector-ref program (+ index 1))
+                                                            (vector-ref program (+ index 2))
+                                                            'global) dictionary)))
+            ((equal? word 'set) (begin
+                                  (set-car! (cdr (assoc (vector-ref program (+ index 1))
+                                                        dictionary)) (car stack))
+                                  (interpreter (+ index 2) (cdr stack) return-stack dictionary)))
+
+            ((equal? word 'tail) (interpreter (cadr (assoc (vector-ref program (+ index 1))
+                                                           dictionary)) stack return-stack dictionary))
+
+            
+                                       
+                                   
+            
+            
+                                      
+                                      
+                                      
+            (else (let ((definition (assoc word dictionary)))
+                    (if (= (length definition) 3)
+                      (interpreter (+ index 1) (cons (cadr definition) stack)
+                                   return-stack dictionary)
+                      (interpreter (cadr (assoc word dictionary))
+                               stack (cons (+ index 1) return-stack) dictionary)))))))))
+
+
+
