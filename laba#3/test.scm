@@ -3,7 +3,8 @@
     ((test x y)
      (begin
        '(x y)
-       ))))
+       ))
+    ))
 
 
 (define (run-tests txs)
@@ -11,7 +12,7 @@
       (write (car (car txs)))
       #t)
   (if (not(null? txs))
-      (if (equal? (eval `,(car (car txs)) (interaction-environment)) (cadr (car txs)))
+      (if (equal? (eval `,(car (car txs)) (interaction-environment)) (eval `,(cadr (car txs)) (interaction-environment)))
           (begin
             (display "ok")
             (newline)

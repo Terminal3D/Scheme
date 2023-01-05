@@ -2,7 +2,7 @@
 (load "trace.scm")
 
 (define ie (interaction-environment))
-(define math-signums `(+ - / *))
+(define math-signums `(+ - *))
 (define logic-signums `(= < >))
 
 
@@ -30,6 +30,9 @@
         (let ((word (vector-ref program index)))
           (cond
             ((number? word) (interpreter (+ index 1) (cons word stack) return-stack dictionary))
+            ((equal? '/ word) (interpreter (+ index 1)
+                                           (cons (quotient (cadr stack) (car stack)) (cddr stack))
+                                           return-stack dictionary))
             ((in-list? word math-signums) (interpreter (+ index 1) (cons (executor word stack) (cddr stack)) return-stack dictionary))
             ((equal? word 'neg) (interpreter (+ index 1) (cons (- (car stack)) (cdr stack)) return-stack dictionary))
             ((equal? word 'mod) (interpreter (+ index 1) (cons (remainder (cadr stack) (car stack)) (cddr stack)) return-stack dictionary))

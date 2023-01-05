@@ -1,7 +1,0 @@
-(define (insert-at pos elmt lst)
-  (if (null? lst)
-      (list elmt)
-      (if (= 1 pos)
-          (cons elmt lst)
-          (cons (car lst) 
-                (insert-at (- pos 1) elmt (cdr lst))))))
