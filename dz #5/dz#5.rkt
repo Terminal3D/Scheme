@@ -11,6 +11,7 @@
 (define feature-switch-case #t)
 (define feature-global #t)
 (define feature-tail-call #t)
+(define feature-hi-level #t)
 
 
 (define (in-list? x xs)
@@ -26,8 +27,8 @@
       #f))
 
 
-(define (executor action stack)
-  (eval (list action (cadr stack) (car stack)) ie))
+(define (executor op stack)
+  (eval (list op (cadr stack) (car stack)) ie))
 
 
 
@@ -68,8 +69,8 @@
           (cond
             ((number? word) (interpreter (+ index 1) (cons word stack) return-stack dictionary))
             ((equal? '/ word) (interpreter (+ index 1)
-                                             (cons (quotient (cadr stack) (car stack)) (cddr stack))
-                                             return-stack dictionary))
+                                           (cons (quotient (cadr stack) (car stack)) (cddr stack))
+                                           return-stack dictionary))
             ((in-list? word math-signums) (interpreter (+ index 1)
                                                        (cons (executor word stack) (cddr stack))
                                                        return-stack dictionary))
@@ -191,21 +192,22 @@
 
             ((equal? word 'tail) (interpreter (cadr (assoc (vector-ref program (+ index 1))
                                                            dictionary)) stack return-stack dictionary))
-
-            
-                                       
-                                   
-            
-            
-                                      
-                                      
-                                      
+            ((equal? word '&) (interpreter (+ index 2) (cons (cadr (assoc (vector-ref program (+ index 1))
+                                                                          dictionary)) stack) return-stack
+                                                                                              dictionary))
+            ((equal? word 'lam) (interpreter (+ (word-index 'endlam program index) 1)
+                                             (cons (+ index 1) stack) return-stack dictionary))
+            ((equal? word 'endlam) (interpreter (car return-stack) stack (cdr return-stack) dictionary))
+            ((equal? word 'apply) (interpreter (car stack) (cdr stack) (cons (+ index 1) return-stack)
+                                               dictionary))
+                              
+                                     
             (else (let ((definition (assoc word dictionary)))
                     (if (= (length definition) 3)
-                      (interpreter (+ index 1) (cons (cadr definition) stack)
-                                   return-stack dictionary)
-                      (interpreter (cadr (assoc word dictionary))
-                               stack (cons (+ index 1) return-stack) dictionary)))))))))
+                        (interpreter (+ index 1) (cons (cadr definition) stack)
+                                     return-stack dictionary)
+                        (interpreter (cadr (assoc word dictionary))
+                                     stack (cons (+ index 1) return-stack) dictionary)))))))))
 
 
 
