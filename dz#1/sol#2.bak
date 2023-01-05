@@ -1,5 +1,0 @@
-(define (square-equation a b c)
-  (let ((discr (- (* b b) (* 4 a c))))
-    (if (>= discr 0)
-        `(,(/ (+ (- b) (sqrt (- (* b b) (* 4 a c)))) (* 2 a)) ,(/ (- (- b) (sqrt (- (* b b) (* 4 a c)))) (* 2 a)))
-        '())))

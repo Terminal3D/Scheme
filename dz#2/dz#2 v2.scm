@@ -5,6 +5,7 @@
       ((> cur b) '())
       (else (cons cur (loop (+ cur d)))))))
 
+;; my-flatten с хвостовой рекурсией без append
 (define (my-flatten xs)
   (let loop ((in xs) (out '()))
     (cond
@@ -192,15 +193,4 @@
 
 
 ;;------------------------------------------
-(define (is-whitespace? x)
-  (and (char? x) (char-whitespace? x)))
 
-(define (list-trim-right xs)
-  (let loop ((in xs) (out '()) (temp '()) (stat #f))
-    (cond
-      ((null? in) out)
-      ((is-whitespace? (car in)) (loop (cdr in) out (append (list (car in)) temp) #t))
-      (else
-       (if stat
-           (loop in (append out temp) '() #f)
-           (loop (cdr in) (append out (list (car in))) '() stat))))))

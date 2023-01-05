@@ -1,5 +1,3 @@
-(load "trace.scm")
-
 (define (my-range a b d)
   (define (loop addout cura)
     (if (< cura b)
@@ -16,10 +14,6 @@
           (append (my-flatten (car xs)) (my-flatten (cdr xs)))
           (cons (car xs) (my-flatten (cdr xs))))
       '()))
-
-;;=================================
-
-
 
 ;;=================================
 
@@ -197,133 +191,6 @@
   (vector-ref (caddr m) (real-index (cadr m) indices)))
 
 ;;==================================
-
-
-
-
-
-;;================================== ACHIEVMENTS ==================================;;
-
-(define call/cc call-with-current-continuation)
-
-(define *env* #f)
-(define *env1* #f)
-(define ie (interaction-environment))
-(define (ass) (call/cc (lambda (cc) (set! *env* cc))))
-(ass)
-
-
-(define (my-flatten lst)
-  (define (loop lis res)
-    (cond ((null? lis) res)
-          ((pair? lis) (loop (car lis) (loop (cdr lis) res)))
-          (else (cons lis res))))
-  (loop lst '()))
-
-(define xr '(1 (2 3) #\space #\space #\return #\newline))
-
-
-(define (only-whitespace-in-list? xs)
-  (if (call/cc (lambda (cc)
-                 (begin
-                   (set! *env* cc)
-                   (map (lambda (x)
-                          (or (and (char? x) (char-whitespace? x))
-                              (*env* #f)))
-                        xs))))
-      #t
-      #f))
-                 
-(define (list-trim-right xs)
-  (define lxs xs)
-  (define lout '())
-  (call/cc (lambda (tt)
-             (begin
-               (set! *env1* tt)
-               (map (lambda (x)
-                      (cond ((only-whitespace-in-list? lxs) (*env1* #f))
-                            (else (set! lout (append  lout `(,x)))
-                                  x))
-                      (set! lxs (cdr lxs))) xs))))
-  lout)
-
-
-
-
-(define (o . xs)
-  (lambda (x)
-    (if (null? xs)
-        x
-        ((car xs) ((apply o (cdr xs)) x)))))
-
-#|(define (my-fold-left op xs)
-  (let ((stack (car xs)))
-    (map (lambda (x)
-           (trace-ex (op stack x))) (cdr xs))
-    stack)) |#
-
-(define (f x) (+ x 2))
-(define (g x) (* x 3))
-(define (h x) (- x))
-
-
-((o f g h) 1)
-((o f g) 1)
-((o h) 1)
-((o) 1)
-
-
-(define (my-fold-right op xs)
-  (if (<= (length xs) 1)
-      (if (= (length xs) 1)
-          (car xs)
-          '())
-      (op (car xs) (my-fold-right op (cdr xs)))))
-
-(define (o . xs)
-  (lambda (a)
-    (my-fold-right
-     (lambda (op x)
-       (op x))
-     (append xs (list a)))))
-
-(define *break* #f)
-
-(define (whitespace? x)
-  (and (char? x) (char-whitespace? x)))
-
-(define (length-trim-right xs)
-  (let loop ((c-list xs) (index 0) (stack 0))
-    (if (null? c-list)
-        index
-        (let ((head (car c-list)))
-          (cond
-            ((not(whitespace? head)) (if (zero? stack)
-                                         (loop (cdr c-list) (+ index 1) stack)
-                                         (loop (cdr c-list) (+ index 1 stack) 0)))
-            ((whitespace? head) (loop (cdr c-list) index (+ stack 1))))))))
-
-
-(define (list-trim-right xs)
-  (define max-index (length-trim-right xs))
-  (let loop ((c-list xs) (index 0))
-    (if (= index max-index)
-        '()
-        (cons (car c-list) (loop (cdr c-list) (+ index 1))))))
-        
-
-
-               
-        
-    
-    
-
-((o f g h) 1)
-((o f g) 1)
-((o h) 1)
-((o) 1)  
-
-
-           
+       
   
 
