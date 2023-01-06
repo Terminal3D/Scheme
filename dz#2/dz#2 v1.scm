@@ -49,6 +49,7 @@
           #t
           (my-element? x (cdr xs)))
       #f))
+; O(n)
 
 (define (list->set xs)
   (if (not(null? xs))
@@ -56,7 +57,7 @@
           (list->set (cdr xs))
           (cons (car xs) (list->set (cdr xs))))
       '()))
-
+; O(n^2)
 ;;=================================
 
 (define (set? xs)
@@ -65,6 +66,7 @@
           #f
           (set? (cdr xs)))
       #t))
+;O(n^2)
 
 ;;=================================
 
@@ -80,7 +82,7 @@
               (union (cdr ys) xs)
               (cons (car ys) (union (cdr ys) xs)))
           xs)))
-
+;O(n^2)
 ;;=================================
 
 (define (intersection xs ys)
@@ -89,7 +91,7 @@
           (cons (car xs) (intersection (cdr xs) ys))
           (intersection (cdr xs) ys))
       '()))
-
+;O(n^2)
 ;;================================= 
 
 (define (difference xs ys)
@@ -98,32 +100,34 @@
           (difference (cdr xs) ys)
           (cons (car xs) (difference (cdr xs) ys)))
       '()))
-
+;O(n^2)
 ;;=================================
 
 (define (symmetric-difference xs ys)
   (difference (union xs ys) (intersection xs ys)))
-
+;O(n^2)
 ;;=================================
 
 (define (set-eq? xs ys)
   (if (= (length(union xs ys)) (length(intersection xs ys)))
       #t
       #f))
-
+;O(n^2)
 ;;=================================
 
 (define (string-trim-left astr)
-  (if (char-whitespace? (string-ref astr 0)) 
-      (string-trim-left (substring astr 1))
-      astr))
+  (let loop ((xs (string->list astr)))
+    (if (char-whitespace? (car xs))
+      (loop (cdr xs))
+      (list->string xs))))
 
 ;;=================================
 
 (define (string-trim-right astr)
-  (if (char-whitespace? (string-ref astr (- (string-length astr) 1)))
-      (string-trim-right (substring astr 0 (- (string-length astr) 1)))
-      astr))
+  (let loop ((xs (reverse (string->list astr))))
+    (if (char-whitespace? (car xs))
+      (loop (cdr xs))
+      (list->string (reverse xs)))))
 
 ;;=================================
 
@@ -133,29 +137,25 @@
 ;;=================================
 
 (define (string-prefix? a b)
-  (if (<= (string-length a) (string-length b))
-      (if (equal? (substring b 0 (string-length a)) a)
-          #t
-          #f)
-      #f))
+  (let loop ((prefix (string->list a)) (xs (string->list b)))
+    (cond
+      ((null? prefix) #t)
+      ((equal? (car prefix) (car xs)) (loop (cdr prefix) (cdr xs)))
+      (else #f))))
 
 ;;=================================
 
 (define (string-suffix? a b)
-  (if (<= (string-length a) (string-length b))
-      (if (equal? (substring b (- (string-length b) (string-length a)) (string-length b)) a)
-          #t
-          #f)
-      #f))
+  (string-prefix? (list->string (reverse (string->list a)))
+                  (list->string (reverse (string->list b)))))
 
 ;;=================================
 
 (define (string-infix? a b)
-  (if (<= (string-length a) (string-length b))
-      (if (string-prefix? a b)
-          #t
-          (string-infix? a (substring b 1)))
-      #f))
+  (cond
+    ((> (string-length a) (string-length b)) #f)
+    ((string-prefix? a b) #t)
+    (else (string-infix? a (substring b 1)))))
 
 ;;=================================  
 
