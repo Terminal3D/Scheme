@@ -120,7 +120,7 @@
     (if (char-whitespace? (car xs))
       (loop (cdr xs))
       (list->string xs))))
-
+;O(n)
 ;;=================================
 
 (define (string-trim-right astr)
@@ -128,11 +128,13 @@
     (if (char-whitespace? (car xs))
       (loop (cdr xs))
       (list->string (reverse xs)))))
+;O(n)
 
 ;;=================================
 
 (define (string-trim astr)
   (string-trim-left (string-trim-right astr)))
+;O(n)
 
 ;;=================================
 
@@ -142,12 +144,14 @@
       ((null? prefix) #t)
       ((equal? (car prefix) (car xs)) (loop (cdr prefix) (cdr xs)))
       (else #f))))
+;O(n)
 
 ;;=================================
 
 (define (string-suffix? a b)
   (string-prefix? (list->string (reverse (string->list a)))
                   (list->string (reverse (string->list b)))))
+;O(n)
 
 ;;=================================
 
@@ -156,6 +160,7 @@
     ((> (string-length a) (string-length b)) #f)
     ((string-prefix? a b) #t)
     (else (string-infix? a (substring b 1)))))
+;O(n^2)
 
 ;;=================================  
 
@@ -166,8 +171,9 @@
           (string-split (substring str (string-length sep)) sep)
           (cons (make-string 1 (car strl)) (string-split (list->string(cdr strl)) sep)))
       '()))
+;O(n^2)
 
-;;=================================
+;;=================================  
 
 (define (make-multi-vector sizes . vs)
   (cond ((equal? 0 (length vs)) (list 'mv sizes (make-vector (apply * sizes))))
