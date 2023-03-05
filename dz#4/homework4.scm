@@ -1,7 +1,4 @@
-
 (define ie (interaction-environment))
-
-
 
 (define (memoized-factorial n)
   (let mem-fact ((cv 1) (cn n) (xs '()))

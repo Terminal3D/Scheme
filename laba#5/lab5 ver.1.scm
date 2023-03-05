@@ -1,5 +1,3 @@
-(load "test.scm")
-(load "trace.scm")
 
 (define ie (interaction-environment))
 (define math-signums `(+ - *))

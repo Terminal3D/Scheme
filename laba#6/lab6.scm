@@ -1,5 +1,3 @@
-(load "test.scm")
-(load "trace.scm")
 (define call/cc call-with-current-continuation)
 (define ie (interaction-environment))
 (define *env* #t)
@@ -139,31 +137,6 @@
         
 
 
- 
-
-(define tests
-  (list
-   (test (check-frac "110/111") #t)
-   (test (check-frac "-4/3") #t)    
-   (test (check-frac "+5/10") #t)   
-   (test (check-frac "5.0/10") #f)
-   (test (check-frac "FF/10") #f)
-   (test (check-frac "/313") #f)
-   (test (check-frac "-2a3/23") #f)
-
-   (test (scan-frac "110/111") 110/111)
-   (test (scan-frac "-4/3") -4/3)
-   (test (scan-frac "+5/10") 1/2)
-   (test (scan-frac "5.0/10") #f)
-   (test (scan-frac "FF/10") #f)
-
-   (test (scan-many-fracs "111/1233 11/222 -2/23") '(111/1233 11/222 -2/23))
-   (test (scan-many-fracs "\t1/2 1/3\n\n10/8") '(1/2 1/3 5/4))
-   (test (scan-many-fracs "\t1/2 1/3\n\n2/-5") #f)))
-
-(run-tests tests)
-
-
 
 ;;=============================================
 
@@ -280,33 +253,6 @@
                    #f)))))
 
 
-(define tests#2 (list
-                 (test (parse #(1 2 +)) '(() (1 2 +)))
-                 (test (parse #(x dup 0 swap if drop -1 endif)) '(() (x dup 0 swap (if (drop -1)))))
-                 (test (parse #( define -- 1 - end
-                                  define =0? dup 0 = end
-                                  define =1? dup 1 = end
-                                  define factorial
-                                  =0? if drop 1 exit endif
-                                  =1? if drop 1 exit endif
-                                  dup --
-                                  factorial
-                                  *
-                                  end
-                                  0 factorial
-                                  1 factorial
-                                  2 factorial
-                                  3 factorial
-                                  4 factorial )) '(((-- (1 -))
-                                                    (=0? (dup 0 =))
-                                                    (=1? (dup 1 =))
-                                                    (factorial
-                                                     (=0? (if (drop 1 exit)) =1? (if (drop 1 exit)) dup -- factorial *)))
-                                                   (0 factorial 1 factorial 2 factorial 3 factorial 4 factorial)))
-                 (test (parse #(if 1 2 endif if 3 4)) #f)
-                 (test (parse #(define word w1 w2 w3)) #f)))
-
-(run-tests tests#2)
 
 
      

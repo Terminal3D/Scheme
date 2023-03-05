@@ -14,7 +14,7 @@
 
 ;;=================================
 
-(load "test.scm")
+(load "unit-test.scm")
 
 (define (signum x)
   (cond

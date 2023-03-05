@@ -1,0 +1,73 @@
+(load "homework4.scm")
+(load "unit-test.scm")
+
+
+(display "\n-=РОБОТ-ПРОВЕРЯЛЬЩИК ВЫПОЛНЯЕТ ТЕСТЫ ДЛЯ СТРУКТУР=-\n\n")
+
+
+(define-struct pos (row col))
+(define p #f)
+
+(define-struct point3d (x y z))
+(define q #f)
+
+
+(define tests
+  (list (test (pos? #t) #f)
+        (test (pos? #f) #f)
+        (test (pos? 'hello) #f)
+        (test (pos? 666) #f)
+        (test (pos? '()) #f)
+        (test (pos? #()) #f)
+        (test (pos? '(one two three)) #f)
+        (test (pos? #(one two three)) #f)
+
+        (test (point3d? #t) #f)
+        (test (point3d? #f) #f)
+        (test (point3d? 'hello) #f)
+        (test (point3d? 777) #f)
+        (test (point3d? '()) #f)
+        (test (point3d? #()) #f)
+        (test (point3d? '(one two three)) #f)
+        (test (point3d? #(one two three)) #f)
+
+        (test (begin (set! p (make-pos 10 20))
+                     (pos? p))
+              #t)
+        (test (point3d? p) #f)
+        (test (pos-row p) 10)
+        (test (pos-col p) 20)
+        (test (begin (set-pos-row! p 30)
+                     (list (pos-row p)
+                           (pos-col p)))
+              '(30 20))
+        (test (begin (set-pos-col! p 40)
+                     (list (pos-row p)
+                           (pos-col p)))
+              '(30 40))
+
+        (test (begin (set! q (make-point3d 7 11 13))
+                     (point3d? q))
+              #t)
+        (test (pos? q) #f)
+        (test (point3d-x q) 7)
+        (test (point3d-y q) 11)
+        (test (point3d-z q) 13)
+        (test (begin (set-point3d-x! q -7)
+                     (list (point3d-x q)
+                           (point3d-y q)
+                           (point3d-z q)))
+              '(-7 11 13))
+        (test (begin (set-point3d-y! q 111)
+                     (list (point3d-x q)
+                           (point3d-y q)
+                           (point3d-z q)))
+              '(-7 111 13))
+        (test (begin (set-point3d-z! q 31)
+                     (list (point3d-x q)
+                           (point3d-y q)
+                           (point3d-z q)))
+              '(-7 111 31))))
+
+
+(define **test-succeed-9614** (run-tests tests))
